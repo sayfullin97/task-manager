@@ -5,6 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
 from app.routers.auth import router as auth_router
+from app.routers.boards import router as boards_router
+from app.routers.columns import router as columns_router
+from app.routers.cards import router as cards_router
 
 
 @asynccontextmanager
@@ -24,7 +27,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/api/v1")
+PREFIX = "/api/v1"
+app.include_router(auth_router, prefix=PREFIX)
+app.include_router(boards_router, prefix=PREFIX)
+app.include_router(columns_router, prefix=PREFIX)
+app.include_router(cards_router, prefix=PREFIX)
 
 
 @app.get("/health")
