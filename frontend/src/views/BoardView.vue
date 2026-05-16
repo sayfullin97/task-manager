@@ -67,16 +67,23 @@ async function onCardDrop(columnId: string, event: any) {
 
     <!-- Board columns -->
     <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto">
-      <template v-if="store.currentBoard">
+      <draggable
+        v-if="store.currentBoard"
+        :list="store.currentBoard.columns"
+        item-key="id"
+        handle=".col-handle"
+        ghost-class="opacity-40"
+        class="flex items-start gap-3"
+        @end="store.updateColumnPositions()"
+      >
+        <template #item="{ element: col }">
         <div
-          v-for="col in store.currentBoard.columns"
-          :key="col.id"
           class="flex-shrink-0 w-72 bg-muted rounded-xl flex flex-col max-h-[calc(100vh-8rem)]"
         >
           <!-- Column header -->
           <div class="px-3 pt-3 pb-2 font-semibold text-sm flex items-center justify-between">
-            <span>{{ col.title }}</span>
-            <button class="text-muted-foreground hover:text-destructive text-xs" @click="store.deleteColumn(col.id)">✕</button>
+            <span class="col-handle cursor-grab active:cursor-grabbing flex-1">{{ col.title }}</span>
+            <button class="text-muted-foreground hover:text-destructive text-xs ml-2" @click="store.deleteColumn(col.id)">✕</button>
           </div>
 
           <!-- Cards -->
@@ -146,7 +153,8 @@ async function onCardDrop(columnId: string, event: any) {
             >+ Add a card</button>
           </div>
         </div>
-      </template>
+        </template>
+      </draggable>
 
       <!-- Add column -->
       <div class="flex-shrink-0 w-72">

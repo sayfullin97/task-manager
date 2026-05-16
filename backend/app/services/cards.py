@@ -89,7 +89,7 @@ async def update_card(card_id: str, data: CardUpdate, user_id: str, db: AsyncSes
     if data.cover_color is not None:
         card.cover_color = data.cover_color
     if data.due_date is not None:
-        card.due_date = datetime.fromisoformat(data.due_date)
+        card.due_date = None if data.due_date == "" else datetime.fromisoformat(data.due_date)
 
     await db.commit()
     await db.refresh(card)
