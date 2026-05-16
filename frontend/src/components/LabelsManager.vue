@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useBoardsStore } from '@/stores/boards'
+import { useToastStore } from '@/stores/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,6 +10,7 @@ import {
 
 const emit = defineEmits<{ close: [] }>()
 const store = useBoardsStore()
+const toast = useToastStore()
 
 const COLORS = [
   '#e05c5c', '#e0885c', '#c9a830', '#4a9e6e',
@@ -24,8 +26,8 @@ const newName = ref('')
 const newColor = ref(COLORS[0])
 const adding = ref(false)
 const saving = ref(false)
+const nameError = ref(false)
 
-const boardId = computed(() => store.currentBoard!.id)
 const labels = computed(() => store.currentBoard?.labels ?? [])
 
 function startEdit(label: { id: string; name: string; color: string }) {
@@ -44,23 +46,38 @@ async function saveEdit() {
   try {
     await store.updateBoardLabel(editingId.value, editName.value.trim(), editColor.value)
     editingId.value = null
+  } catch {
+    // toast shown by interceptor
   } finally {
     saving.value = false
   }
 }
 
 async function deleteLabel(labelId: string) {
-  await store.deleteBoardLabel(labelId)
-  if (editingId.value === labelId) editingId.value = null
+  try {
+    await store.deleteBoardLabel(labelId)
+    if (editingId.value === labelId) editingId.value = null
+  } catch {
+    // toast shown by interceptor
+  }
 }
 
 async function addLabel() {
-  if (!newName.value.trim()) return
+  if (!newName.value.trim()) {
+    nameError.value = true
+    setTimeout(() => { nameError.value = false }, 1500)
+    toast.error('Введите название метки')
+    return
+  }
+  if (!store.currentBoard) return
   adding.value = true
   try {
-    await store.createBoardLabel(boardId.value, newName.value.trim(), newColor.value)
+    await store.createBoardLabel(store.currentBoard.id, newName.value.trim(), newColor.value)
     newName.value = ''
     newColor.value = COLORS[0]
+    toast.success('Метка создана')
+  } catch {
+    // toast shown by interceptor
   } finally {
     adding.value = false
   }
@@ -87,7 +104,7 @@ async function addLabel() {
             <div v-if="editingId === label.id" class="p-2.5 flex flex-col gap-2">
               <div class="flex gap-2">
                 <div
-                  class="w-8 h-8 shrink-0 rounded-md border-2 border-border"
+                  class="w-9 h-9 shrink-0 rounded-md border border-border"
                   :style="{ background: editColor }"
                 />
                 <Input v-model="editName" class="flex-1" @keyup.enter="saveEdit" @keyup.esc="cancelEdit" />
@@ -103,7 +120,7 @@ async function addLabel() {
                 />
               </div>
               <div class="flex gap-2">
-                <Button size="sm" :disabled="saving" @click="saveEdit">Сохранить</Button>
+                <Button size="sm" :disabled="saving" @click="saveEdit">{{ saving ? 'Сохраняю...' : 'Сохранить' }}</Button>
                 <Button size="sm" variant="ghost" @click="cancelEdit">Отмена</Button>
               </div>
             </div>
@@ -120,19 +137,24 @@ async function addLabel() {
           </div>
         </div>
 
-        <p v-else class="text-sm text-muted-foreground text-center py-4">Нет меток. Создайте первую.</p>
+        <p v-else class="text-sm text-muted-foreground text-center py-2">Меток пока нет. Создайте первую.</p>
 
         <!-- Add new label -->
-        <div class="border border-border rounded-lg p-3 flex flex-col gap-2 bg-muted">
+        <div class="border border-border rounded-lg p-3 flex flex-col gap-2.5 bg-muted">
           <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Новая метка</p>
-          <div class="flex gap-2">
+          <div class="flex gap-2 items-center">
             <div
               class="w-9 h-9 shrink-0 rounded-md border border-border"
               :style="{ background: newColor }"
             />
-            <Input v-model="newName" placeholder="Название метки" @keyup.enter="addLabel" />
+            <Input
+              v-model="newName"
+              placeholder="Название метки"
+              :class="nameError ? 'border-destructive ring-2 ring-destructive' : ''"
+              @keyup.enter="addLabel"
+            />
           </div>
-          <div class="flex flex-wrap gap-1">
+          <div class="flex flex-wrap gap-1.5">
             <button
               v-for="c in COLORS"
               :key="c"
@@ -142,7 +164,7 @@ async function addLabel() {
               @click="newColor = c"
             />
           </div>
-          <Button size="sm" :disabled="adding || !newName.trim()" @click="addLabel">
+          <Button size="sm" :disabled="adding" class="w-full" @click="addLabel">
             {{ adding ? 'Создаю...' : '+ Добавить метку' }}
           </Button>
         </div>

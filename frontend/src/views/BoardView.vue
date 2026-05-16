@@ -26,6 +26,25 @@ const addingCol = ref(false)
 const addingCardColId = ref<string | null>(null)
 const newCardTitle = ref('')
 
+// Drag state
+const isDragging = ref(false)
+const dragOverColId = ref<string | null>(null)
+
+function onCardDragStart() { isDragging.value = true }
+function onCardDragEnd() {
+  isDragging.value = false
+  dragOverColId.value = null
+}
+function onColDragEnter(colId: string) {
+  if (isDragging.value) dragOverColId.value = colId
+}
+function onColDragLeave(e: DragEvent, colId: string) {
+  const el = e.currentTarget as HTMLElement
+  if (!el.contains(e.relatedTarget as Node)) {
+    if (dragOverColId.value === colId) dragOverColId.value = null
+  }
+}
+
 // Invite member
 const showLabels = ref(false)
 const showInvite = ref(false)
@@ -260,7 +279,16 @@ async function onCardDrop(columnId: string, event: any) {
         @end="store.updateColumnPositions()"
       >
         <template #item="{ element: col }">
-        <div class="flex-shrink-0 w-72 bg-card border border-border rounded-xl flex flex-col max-h-[calc(100vh-7rem)]">
+        <div
+          class="flex-shrink-0 w-72 bg-card border rounded-xl flex flex-col max-h-[calc(100vh-7rem)] transition-colors duration-150"
+          :class="dragOverColId === col.id
+            ? 'border-ring ring-2 ring-ring'
+            : isDragging
+              ? 'border-border'
+              : 'border-border'"
+          @dragenter="onColDragEnter(col.id)"
+          @dragleave="onColDragLeave($event, col.id)"
+        >
 
           <!-- Column header -->
           <div class="col-drag-handle px-3 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
@@ -280,8 +308,11 @@ async function onCardDrop(columnId: string, event: any) {
               group="cards"
               item-key="id"
               :animation="150"
-              ghost-class="opacity-40"
+              ghost-class="card-drag-ghost"
+              chosen-class="card-drag-chosen"
               class="space-y-2 min-h-[4px]"
+              @start="onCardDragStart"
+              @end="onCardDragEnd"
               @change="(e: any) => onCardDrop(col.id, e)"
             >
               <template #item="{ element: card }">
