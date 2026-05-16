@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
+from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.boards import router as boards_router
 from app.routers.columns import router as columns_router
@@ -29,6 +30,7 @@ app.add_middleware(
 
 PREFIX = "/api/v1"
 app.include_router(auth_router, prefix=PREFIX)
+app.include_router(admin_router, prefix=PREFIX)
 app.include_router(boards_router, prefix=PREFIX)
 app.include_router(columns_router, prefix=PREFIX)
 app.include_router(cards_router, prefix=PREFIX)

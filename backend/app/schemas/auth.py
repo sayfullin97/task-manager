@@ -23,6 +23,7 @@ class UserOut(BaseModel):
     email: str
     name: str
     avatar_url: Optional[str]
+    is_admin: bool = False
 
     model_config = {"from_attributes": True}
 

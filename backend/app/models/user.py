@@ -16,6 +16,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_admin: Mapped[bool] = mapped_column(default=False, nullable=False, server_default='0')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     board_memberships: Mapped[list["BoardMember"]] = relationship(back_populates="user")

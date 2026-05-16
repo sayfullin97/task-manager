@@ -65,6 +65,7 @@ function boardColor(id: string) {
       <h1 class="text-xl font-bold">Task Manager</h1>
       <div class="flex items-center gap-3">
         <span class="text-sm text-muted-foreground">{{ auth.user?.name }}</span>
+        <Button v-if="auth.user?.is_admin" variant="outline" size="sm" @click="router.push('/admin')">Admin</Button>
         <Button
           variant="outline"
           size="icon"
