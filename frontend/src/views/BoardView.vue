@@ -139,98 +139,103 @@ async function onCardDrop(columnId: string, event: any) {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-blue-600">
+  <div class="min-h-screen flex flex-col bg-background">
+
     <!-- Header -->
-    <header class="px-4 py-3 flex items-center gap-4 bg-black/20">
-      <button class="text-white/80 hover:text-white text-sm" @click="router.push('/boards')">← Boards</button>
-      <h1 class="text-white font-bold text-lg flex-1">{{ store.currentBoard?.title }}</h1>
-      <div class="flex items-center gap-2">
+    <header class="px-4 py-2.5 flex items-center gap-3 bg-card border-b border-border">
+      <button
+        class="text-muted-foreground hover:text-foreground text-sm transition-colors flex items-center gap-1"
+        @click="router.push('/boards')"
+      >← Boards</button>
+      <span class="text-border">|</span>
+      <h1 class="font-semibold flex-1 truncate">{{ store.currentBoard?.title }}</h1>
+
+      <div class="flex items-center gap-1.5">
         <!-- Members avatars -->
-        <div class="flex -space-x-2">
+        <div class="flex -space-x-1.5 mr-1">
           <div
             v-for="m in store.currentBoard?.members.slice(0, 4)"
             :key="m.user.id"
             :title="m.user.name"
-            class="w-7 h-7 rounded-full bg-white/30 text-white text-xs flex items-center justify-center border-2 border-white/20"
+            class="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center border-2 border-card font-medium"
           >{{ m.user.name[0].toUpperCase() }}</div>
         </div>
+
         <button
-          class="text-white/80 hover:text-white text-sm border border-white/30 rounded px-2 py-1 transition-colors"
-          :class="showFilters ? 'bg-white/20' : ''"
+          class="text-sm px-2.5 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          :class="showFilters ? 'bg-muted text-foreground' : ''"
           @click="showFilters = !showFilters"
-        >
-          Фильтр{{ hasFilters ? ' ●' : '' }}
-        </button>
+        >Фильтр{{ hasFilters ? ' ●' : '' }}</button>
+
         <button
-          class="w-7 h-7 rounded flex items-center justify-center text-white/80 hover:text-white hover:bg-black/20 transition-colors"
+          class="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
           @click="toggleTheme"
         >{{ isDark ? '☀️' : '🌙' }}</button>
+
         <button
-          class="text-white/80 hover:text-white text-sm border border-white/30 rounded px-2 py-1"
+          class="text-sm px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           @click="showInvite = true"
         >+ Invite</button>
       </div>
     </header>
 
     <!-- Filter bar -->
-    <div v-if="showFilters && store.currentBoard" class="px-4 py-2 bg-black/20 flex flex-wrap items-center gap-3 border-t border-white/10">
+    <div v-if="showFilters && store.currentBoard" class="px-4 py-2 bg-muted/50 border-b border-border flex flex-wrap items-center gap-4">
       <div v-if="store.currentBoard.labels.length" class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-white/60 text-xs font-medium">Метки:</span>
+        <span class="text-xs font-medium text-muted-foreground">Метки:</span>
         <button
           v-for="label in store.currentBoard.labels"
           :key="label.id"
           :style="{ background: label.color }"
           class="text-xs text-white px-2 py-0.5 rounded-full border-2 transition-all"
-          :class="selectedLabelIds.has(label.id) ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'"
+          :class="selectedLabelIds.has(label.id) ? 'border-foreground scale-105' : 'border-transparent opacity-50 hover:opacity-100'"
           @click="toggleLabelFilter(label.id)"
         >{{ label.name }}</button>
       </div>
 
       <div v-if="store.currentBoard.members.length" class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-white/60 text-xs font-medium">Участники:</span>
+        <span class="text-xs font-medium text-muted-foreground">Участники:</span>
         <button
           v-for="m in store.currentBoard.members"
           :key="m.user.id"
           :title="m.user.name"
-          class="w-6 h-6 rounded-full text-[10px] text-white flex items-center justify-center border-2 transition-all"
-          :class="selectedMemberIds.has(m.user.id) ? 'border-white bg-white/40 scale-110' : 'border-transparent bg-white/20 hover:bg-white/30'"
+          class="w-6 h-6 rounded-full text-[10px] font-medium flex items-center justify-center border-2 transition-all bg-primary text-primary-foreground"
+          :class="selectedMemberIds.has(m.user.id) ? 'border-foreground scale-110' : 'border-transparent opacity-50 hover:opacity-100'"
           @click="toggleMemberFilter(m.user.id)"
         >{{ m.user.name[0].toUpperCase() }}</button>
       </div>
 
       <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-white/60 text-xs font-medium">Дедлайн:</span>
+        <span class="text-xs font-medium text-muted-foreground">Дедлайн:</span>
         <button
           v-for="opt in [{ v: 'overdue', l: 'Просрочено' }, { v: 'week', l: 'На неделе' }, { v: 'none', l: 'Без даты' }]"
           :key="opt.v"
-          class="text-xs text-white px-2 py-0.5 rounded-full border border-white/30 transition-colors"
-          :class="dueDateFilter === opt.v ? 'bg-white/30 border-white' : 'hover:bg-white/10'"
+          class="text-xs px-2 py-0.5 rounded-full border border-border transition-colors"
+          :class="dueDateFilter === opt.v ? 'bg-primary text-primary-foreground border-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
           @click="dueDateFilter = dueDateFilter === opt.v ? null : opt.v as any"
         >{{ opt.l }}</button>
       </div>
 
-      <button v-if="hasFilters" class="text-xs text-white/60 hover:text-white underline ml-auto" @click="clearFilters">
+      <button v-if="hasFilters" class="text-xs text-muted-foreground hover:text-foreground underline ml-auto" @click="clearFilters">
         Сбросить
       </button>
     </div>
 
     <!-- Invite modal -->
     <div v-if="showInvite" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" @click.self="showInvite = false">
-      <div class="bg-card rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+      <div class="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
         <h2 class="font-semibold text-lg">Пригласить участника</h2>
         <Input v-model="inviteEmail" placeholder="email@example.com" type="email" autofocus @keyup.enter="inviteMember" />
         <div class="flex gap-2">
-          <Button :disabled="inviting" @click="inviteMember">
-            {{ inviting ? 'Добавляю...' : 'Добавить' }}
-          </Button>
+          <Button :disabled="inviting" @click="inviteMember">{{ inviting ? 'Добавляю...' : 'Добавить' }}</Button>
           <Button variant="ghost" @click="showInvite = false">Отмена</Button>
         </div>
       </div>
     </div>
 
     <!-- Board columns -->
-    <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto">
+    <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto bg-muted/30">
       <draggable
         v-if="store.currentBoard"
         :list="store.currentBoard.columns"
@@ -242,13 +247,15 @@ async function onCardDrop(columnId: string, event: any) {
         @end="store.updateColumnPositions()"
       >
         <template #item="{ element: col }">
-        <div
-          class="flex-shrink-0 w-72 bg-muted rounded-xl flex flex-col max-h-[calc(100vh-8rem)]"
-        >
+        <div class="flex-shrink-0 w-72 bg-card border border-border rounded-xl flex flex-col max-h-[calc(100vh-7rem)]">
+
           <!-- Column header -->
-          <div class="col-drag-handle px-3 pt-3 pb-2 font-semibold text-sm flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
-            <span class="flex-1">{{ col.title }}</span>
-            <button class="text-muted-foreground hover:text-destructive text-xs ml-2 cursor-pointer" @click.stop="store.deleteColumn(col.id)">✕</button>
+          <div class="col-drag-handle px-3 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
+            <span class="font-semibold text-sm flex-1">{{ col.title }}</span>
+            <button
+              class="text-muted-foreground hover:text-destructive text-xs ml-2 cursor-pointer transition-colors"
+              @click.stop="store.deleteColumn(col.id)"
+            >✕</button>
           </div>
 
           <!-- Cards -->
@@ -264,19 +271,19 @@ async function onCardDrop(columnId: string, event: any) {
             >
               <template #item="{ element: card }">
                 <div
-                  class="bg-card rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-all overflow-hidden"
+                  class="bg-background border border-border rounded-lg cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all overflow-hidden"
                   :class="matchingCardIds && !matchingCardIds.has(card.id) ? 'opacity-25' : ''"
                   @click="store.openCard(card.id)"
                 >
                   <div v-if="card.cover_color" :style="{ background: card.cover_color }" class="h-8" />
                   <div class="p-2.5">
                     <p class="text-sm font-medium">{{ card.title }}</p>
-                    <div class="flex flex-wrap gap-1 mt-1.5" v-if="card.labels?.length">
+                    <div v-if="card.labels?.length" class="flex flex-wrap gap-1 mt-1.5">
                       <span
                         v-for="label in card.labels"
                         :key="label.id"
                         :style="{ background: label.color }"
-                        class="text-[10px] text-white px-1.5 py-0.5 rounded-full"
+                        class="text-[10px] text-white px-1.5 py-0.5 rounded-full font-medium"
                       >{{ label.name }}</span>
                     </div>
                     <div class="flex items-center justify-between mt-1.5">
@@ -287,7 +294,7 @@ async function onCardDrop(columnId: string, event: any) {
                         <div
                           v-for="user in card.assignees?.slice(0, 3)"
                           :key="user.id"
-                          class="w-5 h-5 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center border border-card"
+                          class="w-5 h-5 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center border border-card font-medium"
                         >{{ user.name[0].toUpperCase() }}</div>
                       </div>
                     </div>
@@ -315,7 +322,7 @@ async function onCardDrop(columnId: string, event: any) {
             </div>
             <button
               v-else
-              class="w-full text-left text-sm text-muted-foreground hover:text-foreground hover:bg-black/5 px-1 py-1 rounded"
+              class="w-full text-left text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1.5 rounded-md transition-colors"
               @click="startAddCard(col.id)"
             >+ Add a card</button>
           </div>
@@ -325,7 +332,7 @@ async function onCardDrop(columnId: string, event: any) {
 
       <!-- Add column -->
       <div class="flex-shrink-0 w-72">
-        <div v-if="addingCol" class="bg-muted rounded-xl p-2 space-y-2">
+        <div v-if="addingCol" class="bg-card border border-border rounded-xl p-3 space-y-2">
           <Input
             v-model="newColTitle"
             placeholder="Column title..."
@@ -340,7 +347,7 @@ async function onCardDrop(columnId: string, event: any) {
         </div>
         <button
           v-else
-          class="w-full text-left text-white/80 hover:text-white hover:bg-black/10 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+          class="w-full text-left text-muted-foreground hover:text-foreground hover:bg-card/80 border border-dashed border-border hover:border-primary/30 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
           @click="addingCol = true"
         >+ Add column</button>
       </div>
