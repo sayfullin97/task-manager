@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBoardsStore } from '@/stores/boards'
 import { useToastStore } from '@/stores/toast'
+import { useTheme } from '@/composables/useTheme'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Card from '@/components/ui/Card.vue'
@@ -12,6 +13,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const store = useBoardsStore()
 const toast = useToastStore()
+const { isDark, toggle: toggleTheme } = useTheme()
 
 const showCreate = ref(false)
 const newTitle = ref('')
@@ -52,6 +54,11 @@ function boardColor(id: string) {
       <h1 class="text-xl font-bold">Task Manager</h1>
       <div class="flex items-center gap-3">
         <span class="text-sm text-muted-foreground">{{ auth.user?.name }}</span>
+        <button
+          class="w-8 h-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
+          @click="toggleTheme"
+        >{{ isDark ? '☀️' : '🌙' }}</button>
         <Button variant="outline" size="sm" @click="logout">Logout</Button>
       </div>
     </header>

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import { useBoardsStore } from '@/stores/boards'
 import { useToastStore } from '@/stores/toast'
+import { useTheme } from '@/composables/useTheme'
 import { boardsApi } from '@/api/boards'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
@@ -14,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useBoardsStore()
 const toast = useToastStore()
+const { isDark, toggle: toggleTheme } = useTheme()
 
 const boardId = route.params.id as string
 const newColTitle = ref('')
@@ -97,6 +99,11 @@ async function onCardDrop(columnId: string, event: any) {
             class="w-7 h-7 rounded-full bg-white/30 text-white text-xs flex items-center justify-center border-2 border-white/20"
           >{{ m.user.name[0].toUpperCase() }}</div>
         </div>
+        <button
+          class="w-7 h-7 rounded flex items-center justify-center text-white/80 hover:text-white hover:bg-black/20 transition-colors"
+          :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
+          @click="toggleTheme"
+        >{{ isDark ? '☀️' : '🌙' }}</button>
         <button
           class="text-white/80 hover:text-white text-sm border border-white/30 rounded px-2 py-1"
           @click="showInvite = true"
