@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import { useBoardsStore } from '@/stores/boards'
@@ -42,6 +42,61 @@ async function inviteMember() {
   } finally {
     inviting.value = false
   }
+}
+
+// Filters
+const showFilters = ref(false)
+const selectedLabelIds = ref(new Set<string>())
+const selectedMemberIds = ref(new Set<string>())
+const dueDateFilter = ref<'overdue' | 'week' | 'none' | null>(null)
+
+const hasFilters = computed(() =>
+  selectedLabelIds.value.size > 0 || selectedMemberIds.value.size > 0 || dueDateFilter.value !== null
+)
+
+const matchingCardIds = computed<Set<string> | null>(() => {
+  if (!hasFilters.value) return null
+  const result = new Set<string>()
+  for (const col of store.currentBoard?.columns ?? []) {
+    for (const card of col.cards) {
+      let match = true
+      if (selectedLabelIds.value.size > 0) {
+        const ids = new Set(card.labels.map(l => l.id))
+        if (![...selectedLabelIds.value].some(id => ids.has(id))) match = false
+      }
+      if (match && selectedMemberIds.value.size > 0) {
+        const ids = new Set(card.assignees.map(u => u.id))
+        if (![...selectedMemberIds.value].some(id => ids.has(id))) match = false
+      }
+      if (match && dueDateFilter.value) {
+        const now = new Date()
+        const due = card.due_date ? new Date(card.due_date) : null
+        if (dueDateFilter.value === 'overdue') match = !!due && due < now
+        else if (dueDateFilter.value === 'week') match = !!due && due <= new Date(now.getTime() + 7 * 864e5)
+        else if (dueDateFilter.value === 'none') match = !due
+      }
+      if (match) result.add(card.id)
+    }
+  }
+  return result
+})
+
+function toggleLabelFilter(id: string) {
+  const next = new Set(selectedLabelIds.value)
+  next.has(id) ? next.delete(id) : next.add(id)
+  selectedLabelIds.value = next
+}
+
+function toggleMemberFilter(id: string) {
+  const next = new Set(selectedMemberIds.value)
+  next.has(id) ? next.delete(id) : next.add(id)
+  selectedMemberIds.value = next
+}
+
+function clearFilters() {
+  selectedLabelIds.value = new Set()
+  selectedMemberIds.value = new Set()
+  dueDateFilter.value = null
 }
 
 onMounted(() => store.fetchBoard(boardId))
@@ -100,6 +155,13 @@ async function onCardDrop(columnId: string, event: any) {
           >{{ m.user.name[0].toUpperCase() }}</div>
         </div>
         <button
+          class="text-white/80 hover:text-white text-sm border border-white/30 rounded px-2 py-1 transition-colors"
+          :class="showFilters ? 'bg-white/20' : ''"
+          @click="showFilters = !showFilters"
+        >
+          Фильтр{{ hasFilters ? ' ●' : '' }}
+        </button>
+        <button
           class="w-7 h-7 rounded flex items-center justify-center text-white/80 hover:text-white hover:bg-black/20 transition-colors"
           :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
           @click="toggleTheme"
@@ -110,6 +172,48 @@ async function onCardDrop(columnId: string, event: any) {
         >+ Invite</button>
       </div>
     </header>
+
+    <!-- Filter bar -->
+    <div v-if="showFilters && store.currentBoard" class="px-4 py-2 bg-black/20 flex flex-wrap items-center gap-3 border-t border-white/10">
+      <div v-if="store.currentBoard.labels.length" class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-white/60 text-xs font-medium">Метки:</span>
+        <button
+          v-for="label in store.currentBoard.labels"
+          :key="label.id"
+          :style="{ background: label.color }"
+          class="text-xs text-white px-2 py-0.5 rounded-full border-2 transition-all"
+          :class="selectedLabelIds.has(label.id) ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'"
+          @click="toggleLabelFilter(label.id)"
+        >{{ label.name }}</button>
+      </div>
+
+      <div v-if="store.currentBoard.members.length" class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-white/60 text-xs font-medium">Участники:</span>
+        <button
+          v-for="m in store.currentBoard.members"
+          :key="m.user.id"
+          :title="m.user.name"
+          class="w-6 h-6 rounded-full text-[10px] text-white flex items-center justify-center border-2 transition-all"
+          :class="selectedMemberIds.has(m.user.id) ? 'border-white bg-white/40 scale-110' : 'border-transparent bg-white/20 hover:bg-white/30'"
+          @click="toggleMemberFilter(m.user.id)"
+        >{{ m.user.name[0].toUpperCase() }}</button>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-white/60 text-xs font-medium">Дедлайн:</span>
+        <button
+          v-for="opt in [{ v: 'overdue', l: 'Просрочено' }, { v: 'week', l: 'На неделе' }, { v: 'none', l: 'Без даты' }]"
+          :key="opt.v"
+          class="text-xs text-white px-2 py-0.5 rounded-full border border-white/30 transition-colors"
+          :class="dueDateFilter === opt.v ? 'bg-white/30 border-white' : 'hover:bg-white/10'"
+          @click="dueDateFilter = dueDateFilter === opt.v ? null : opt.v as any"
+        >{{ opt.l }}</button>
+      </div>
+
+      <button v-if="hasFilters" class="text-xs text-white/60 hover:text-white underline ml-auto" @click="clearFilters">
+        Сбросить
+      </button>
+    </div>
 
     <!-- Invite modal -->
     <div v-if="showInvite" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" @click.self="showInvite = false">
@@ -160,7 +264,8 @@ async function onCardDrop(columnId: string, event: any) {
             >
               <template #item="{ element: card }">
                 <div
-                  class="bg-card rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow overflow-hidden"
+                  class="bg-card rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-all overflow-hidden"
+                  :class="matchingCardIds && !matchingCardIds.has(card.id) ? 'opacity-25' : ''"
                   @click="store.openCard(card.id)"
                 >
                   <div v-if="card.cover_color" :style="{ background: card.cover_color }" class="h-8" />
