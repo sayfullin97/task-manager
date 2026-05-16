@@ -71,7 +71,8 @@ async function onCardDrop(columnId: string, event: any) {
         v-if="store.currentBoard"
         :list="store.currentBoard.columns"
         item-key="id"
-        handle=".col-handle"
+        handle=".col-drag-handle"
+        :animation="150"
         ghost-class="opacity-40"
         class="flex items-start gap-3"
         @end="store.updateColumnPositions()"
@@ -81,9 +82,9 @@ async function onCardDrop(columnId: string, event: any) {
           class="flex-shrink-0 w-72 bg-muted rounded-xl flex flex-col max-h-[calc(100vh-8rem)]"
         >
           <!-- Column header -->
-          <div class="px-3 pt-3 pb-2 font-semibold text-sm flex items-center justify-between">
-            <span class="col-handle cursor-grab active:cursor-grabbing flex-1">{{ col.title }}</span>
-            <button class="text-muted-foreground hover:text-destructive text-xs ml-2" @click="store.deleteColumn(col.id)">✕</button>
+          <div class="col-drag-handle px-3 pt-3 pb-2 font-semibold text-sm flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
+            <span class="flex-1">{{ col.title }}</span>
+            <button class="text-muted-foreground hover:text-destructive text-xs ml-2 cursor-pointer" @click.stop="store.deleteColumn(col.id)">✕</button>
           </div>
 
           <!-- Cards -->
@@ -92,6 +93,7 @@ async function onCardDrop(columnId: string, event: any) {
               :list="col.cards"
               group="cards"
               item-key="id"
+              :animation="150"
               ghost-class="opacity-40"
               class="space-y-2 min-h-[4px]"
               @change="(e: any) => onCardDrop(col.id, e)"
