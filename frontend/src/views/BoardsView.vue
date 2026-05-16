@@ -5,9 +5,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useBoardsStore } from '@/stores/boards'
 import { useToastStore } from '@/stores/toast'
 import { useTheme } from '@/composables/useTheme'
-import Button from '@/components/ui/Button.vue'
-import Input from '@/components/ui/Input.vue'
-import Card from '@/components/ui/Card.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 
 const router = useRouter()
 const auth = useAuthStore()

@@ -2,8 +2,8 @@
 import { ref, computed } from 'vue'
 import { useBoardsStore } from '@/stores/boards'
 import { cardsApi } from '@/api/cards'
-import Button from '@/components/ui/Button.vue'
-import Input from '@/components/ui/Input.vue'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const emit = defineEmits<{ close: [] }>()
 const store = useBoardsStore()
