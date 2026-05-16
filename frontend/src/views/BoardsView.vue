@@ -18,6 +18,18 @@ const { isDark, toggle: toggleTheme } = useTheme()
 const showCreate = ref(false)
 const newTitle = ref('')
 const creating = ref(false)
+const deletingBoardId = ref<string | null>(null)
+
+async function doDeleteBoard(boardId: string) {
+  try {
+    await store.deleteBoard(boardId)
+    toast.success('Доска удалена')
+  } catch {
+    // toast shown by interceptor
+  } finally {
+    deletingBoardId.value = null
+  }
+}
 
 onMounted(() => store.fetchBoards())
 
@@ -99,21 +111,42 @@ function boardColor(id: string) {
         </template>
 
         <template v-else>
-          <RouterLink
+          <div
             v-for="board in store.boards"
             :key="board.id"
-            :to="`/boards/${board.id}`"
-            class="group"
+            class="group relative"
           >
-            <div class="rounded-lg overflow-hidden border hover:shadow-md transition-shadow cursor-pointer">
-              <div :style="{ background: boardColor(board.id) }" class="h-20" />
-              <div class="p-3 bg-card">
-                <p class="font-medium text-sm truncate">{{ board.title }}</p>
-                <p v-if="board.description" class="text-xs text-muted-foreground mt-0.5 truncate">{{ board.description }}</p>
-                <p class="text-xs text-muted-foreground mt-1 capitalize">{{ board.role }}</p>
+            <RouterLink :to="`/boards/${board.id}`">
+              <div class="rounded-lg overflow-hidden border hover:shadow-md transition-shadow cursor-pointer">
+                <div :style="{ background: boardColor(board.id) }" class="h-20" />
+                <div class="p-3 bg-card">
+                  <p class="font-medium text-sm truncate">{{ board.title }}</p>
+                  <p v-if="board.description" class="text-xs text-muted-foreground mt-0.5 truncate">{{ board.description }}</p>
+                  <p class="text-xs text-muted-foreground mt-1 capitalize">{{ board.role }}</p>
+                </div>
+              </div>
+            </RouterLink>
+
+            <!-- Delete board button (owner only) -->
+            <button
+              v-if="board.role === 'owner'"
+              class="absolute top-1.5 right-1.5 size-6 rounded flex items-center justify-center bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60 text-xs leading-none"
+              :title="'Удалить доску'"
+              @click.prevent="deletingBoardId === board.id ? doDeleteBoard(board.id) : (deletingBoardId = board.id)"
+            >✕</button>
+
+            <!-- Confirm overlay -->
+            <div
+              v-if="deletingBoardId === board.id"
+              class="absolute inset-0 rounded-lg bg-background/90 flex flex-col items-center justify-center gap-2 p-3"
+            >
+              <p class="text-xs font-medium text-center">Удалить «{{ board.title }}»?</p>
+              <div class="flex gap-1.5">
+                <Button size="xs" variant="destructive" @click="doDeleteBoard(board.id)">Удалить</Button>
+                <Button size="xs" variant="ghost" @click="deletingBoardId = null">Отмена</Button>
               </div>
             </div>
-          </RouterLink>
+          </div>
 
           <p v-if="!store.boards.length" class="col-span-full text-center text-muted-foreground py-12">
             No boards yet. Create your first one!

@@ -28,6 +28,12 @@ export const useBoardsStore = defineStore('boards', () => {
     return data
   }
 
+  async function deleteBoard(boardId: string) {
+    await boardsApi.delete(boardId)
+    boards.value = boards.value.filter(b => b.id !== boardId)
+    if (currentBoard.value?.id === boardId) currentBoard.value = null
+  }
+
   async function fetchBoard(id: string) {
     boardLoading.value = true
     try {
@@ -174,6 +180,7 @@ export const useBoardsStore = defineStore('boards', () => {
     boardLoading,
     fetchBoards,
     createBoard,
+    deleteBoard,
     fetchBoard,
     updateBoard,
     createColumn,

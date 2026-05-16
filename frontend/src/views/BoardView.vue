@@ -64,6 +64,50 @@ async function saveColTitle() {
 // Search
 const searchQuery = ref('')
 
+// Column sort: 'default' | 'due_asc' | 'title_asc'
+const colSort = ref<Record<string, 'default' | 'due_asc' | 'title_asc'>>({})
+const SORT_CYCLE: Record<string, 'default' | 'due_asc' | 'title_asc'> = {
+  default: 'due_asc',
+  due_asc: 'title_asc',
+  title_asc: 'default',
+}
+const SORT_LABEL: Record<string, string> = {
+  default: '↕',
+  due_asc: '📅',
+  title_asc: 'A–Z',
+}
+function cycleSort(colId: string) {
+  colSort.value[colId] = SORT_CYCLE[colSort.value[colId] ?? 'default']
+}
+function sortedCards(col: { id: string; cards: CardBrief[] }): CardBrief[] {
+  const mode = colSort.value[col.id] ?? 'default'
+  if (mode === 'default') return col.cards
+  return [...col.cards].sort((a, b) => {
+    if (mode === 'title_asc') return a.title.localeCompare(b.title)
+    // due_asc: nulls last
+    if (!a.due_date && !b.due_date) return 0
+    if (!a.due_date) return 1
+    if (!b.due_date) return -1
+    return a.due_date < b.due_date ? -1 : 1
+  })
+}
+
+// Overdue helper
+const now = new Date()
+function isOverdue(due: string | null) {
+  return !!due && new Date(due) < now
+}
+
+// Stable sorted display per column (used as :list in draggable)
+const colDisplayCards = computed(() => {
+  if (!store.currentBoard) return {} as Record<string, CardBrief[]>
+  const result: Record<string, CardBrief[]> = {}
+  for (const col of store.currentBoard.columns) {
+    result[col.id] = sortedCards(col)
+  }
+  return result
+})
+
 // Drag state
 const isDragging = ref(false)
 const dragOverColId = ref<string | null>(null)
@@ -366,7 +410,7 @@ async function onCardDrop(columnId: string, event: any) {
         >
 
           <!-- Column header -->
-          <div class="px-3 pt-3 pb-2 flex items-center justify-between">
+          <div class="px-3 pt-3 pb-2 flex items-center gap-1">
             <input
               v-if="editingColId === col.id"
               v-model="editingColTitle"
@@ -379,14 +423,28 @@ async function onCardDrop(columnId: string, event: any) {
             />
             <span
               v-else
-              class="col-drag-handle font-semibold text-sm flex-1 cursor-grab active:cursor-grabbing select-none truncate hover:text-muted-foreground transition-colors"
-              :title="'Нажмите, чтобы переименовать'"
+              class="col-drag-handle font-semibold text-sm flex-1 cursor-grab active:cursor-grabbing select-none truncate"
+              :title="'Двойной клик — переименовать'"
               @dblclick.stop="startEditCol(col.id, col.title)"
             >{{ col.title }}</span>
+
+            <!-- Card count -->
+            <span class="text-xs text-muted-foreground shrink-0">{{ col.cards.length }}</span>
+
+            <!-- Sort toggle -->
             <Button
               variant="ghost"
               size="icon-sm"
-              class="ml-1 shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
+              class="shrink-0 text-muted-foreground text-xs"
+              :class="(colSort[col.id] ?? 'default') !== 'default' ? 'text-foreground' : ''"
+              :title="'Сортировка'"
+              @click.stop="cycleSort(col.id)"
+            >{{ SORT_LABEL[colSort[col.id] ?? 'default'] }}</Button>
+
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              class="shrink-0 text-muted-foreground hover:text-destructive"
               @click.stop="store.deleteColumn(col.id)"
             >✕</Button>
           </div>
@@ -394,7 +452,7 @@ async function onCardDrop(columnId: string, event: any) {
           <!-- Cards -->
           <div class="flex-1 overflow-y-auto px-2 pb-2">
             <draggable
-              :list="col.cards"
+              :list="colDisplayCards[col.id] ?? col.cards"
               group="cards"
               item-key="id"
               :animation="150"
@@ -407,8 +465,11 @@ async function onCardDrop(columnId: string, event: any) {
             >
               <template #item="{ element: card }">
                 <div
-                  class="bg-background border border-border rounded-lg cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all overflow-hidden"
-                  :class="matchingCardIds && !matchingCardIds.has(card.id) ? 'opacity-25' : ''"
+                  class="bg-background border rounded-lg cursor-pointer hover:shadow-sm transition-all overflow-hidden"
+                  :class="[
+                    matchingCardIds && !matchingCardIds.has(card.id) ? 'opacity-25' : '',
+                    isOverdue(card.due_date) ? 'border-destructive/50' : 'border-border',
+                  ]"
                   @click="store.openCard(card.id)"
                 >
                   <div v-if="card.cover_color" :style="{ background: card.cover_color }" class="h-8" />
@@ -423,7 +484,7 @@ async function onCardDrop(columnId: string, event: any) {
                       >{{ label.name }}</span>
                     </div>
                     <div class="flex items-center justify-between mt-1.5">
-                      <span v-if="card.due_date" class="text-xs text-muted-foreground">
+                      <span v-if="card.due_date" class="text-xs" :class="isOverdue(card.due_date) ? 'text-destructive font-medium' : 'text-muted-foreground'">
                         📅 {{ new Date(card.due_date).toLocaleDateString() }}
                       </span>
                       <div class="flex -space-x-1 ml-auto">
