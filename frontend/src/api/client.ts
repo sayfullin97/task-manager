@@ -18,6 +18,9 @@ client.interceptors.response.use(
   async (error) => {
     const original = error.config
     if (error.response?.status !== 401 || original._retry) {
+      const { useToastStore } = await import('@/stores/toast')
+      const msg = error.response?.data?.detail ?? 'Что-то пошло не так'
+      useToastStore().error(msg)
       return Promise.reject(error)
     }
 

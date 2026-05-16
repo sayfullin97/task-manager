@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useBoardsStore } from '@/stores/boards'
+import { useToastStore } from '@/stores/toast'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Card from '@/components/ui/Card.vue'
@@ -10,6 +11,7 @@ import Card from '@/components/ui/Card.vue'
 const router = useRouter()
 const auth = useAuthStore()
 const store = useBoardsStore()
+const toast = useToastStore()
 
 const showCreate = ref(false)
 const newTitle = ref('')
@@ -24,6 +26,7 @@ async function createBoard() {
     const board = await store.createBoard(newTitle.value.trim())
     newTitle.value = ''
     showCreate.value = false
+    toast.success('Доска создана')
     router.push(`/boards/${board.id}`)
   } finally {
     creating.value = false

@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import { useBoardsStore } from '@/stores/boards'
+import { useToastStore } from '@/stores/toast'
+import { boardsApi } from '@/api/boards'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import CardModal from '@/components/CardModal.vue'
@@ -11,12 +13,34 @@ import type { CardBrief } from '@/types'
 const route = useRoute()
 const router = useRouter()
 const store = useBoardsStore()
+const toast = useToastStore()
 
 const boardId = route.params.id as string
 const newColTitle = ref('')
 const addingCol = ref(false)
 const addingCardColId = ref<string | null>(null)
 const newCardTitle = ref('')
+
+// Invite member
+const showInvite = ref(false)
+const inviteEmail = ref('')
+const inviting = ref(false)
+
+async function inviteMember() {
+  if (!inviteEmail.value.trim()) return
+  inviting.value = true
+  try {
+    await boardsApi.addMember(boardId, inviteEmail.value.trim())
+    await store.fetchBoard(boardId)
+    toast.success(`${inviteEmail.value} добавлен на доску`)
+    inviteEmail.value = ''
+    showInvite.value = false
+  } catch {
+    // error toast shown by interceptor
+  } finally {
+    inviting.value = false
+  }
+}
 
 onMounted(() => store.fetchBoard(boardId))
 
@@ -62,8 +86,37 @@ async function onCardDrop(columnId: string, event: any) {
     <!-- Header -->
     <header class="px-4 py-3 flex items-center gap-4 bg-black/20">
       <button class="text-white/80 hover:text-white text-sm" @click="router.push('/boards')">← Boards</button>
-      <h1 class="text-white font-bold text-lg">{{ store.currentBoard?.title }}</h1>
+      <h1 class="text-white font-bold text-lg flex-1">{{ store.currentBoard?.title }}</h1>
+      <div class="flex items-center gap-2">
+        <!-- Members avatars -->
+        <div class="flex -space-x-2">
+          <div
+            v-for="m in store.currentBoard?.members.slice(0, 4)"
+            :key="m.user.id"
+            :title="m.user.name"
+            class="w-7 h-7 rounded-full bg-white/30 text-white text-xs flex items-center justify-center border-2 border-white/20"
+          >{{ m.user.name[0].toUpperCase() }}</div>
+        </div>
+        <button
+          class="text-white/80 hover:text-white text-sm border border-white/30 rounded px-2 py-1"
+          @click="showInvite = true"
+        >+ Invite</button>
+      </div>
     </header>
+
+    <!-- Invite modal -->
+    <div v-if="showInvite" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" @click.self="showInvite = false">
+      <div class="bg-card rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+        <h2 class="font-semibold text-lg">Пригласить участника</h2>
+        <Input v-model="inviteEmail" placeholder="email@example.com" type="email" autofocus @keyup.enter="inviteMember" />
+        <div class="flex gap-2">
+          <Button :disabled="inviting" @click="inviteMember">
+            {{ inviting ? 'Добавляю...' : 'Добавить' }}
+          </Button>
+          <Button variant="ghost" @click="showInvite = false">Отмена</Button>
+        </div>
+      </div>
+    </div>
 
     <!-- Board columns -->
     <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto">
