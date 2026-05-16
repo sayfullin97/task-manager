@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogScrollContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import CardModal from '@/components/CardModal.vue'
+import LabelsManager from '@/components/LabelsManager.vue'
 import type { CardBrief } from '@/types'
 
 const route = useRoute()
@@ -26,6 +27,7 @@ const addingCardColId = ref<string | null>(null)
 const newCardTitle = ref('')
 
 // Invite member
+const showLabels = ref(false)
 const showInvite = ref(false)
 const inviteEmail = ref('')
 const inviting = ref(false)
@@ -162,6 +164,8 @@ async function onCardDrop(columnId: string, event: any) {
             <AvatarFallback class="text-[10px] bg-primary text-primary-foreground">{{ m.user.name[0].toUpperCase() }}</AvatarFallback>
           </Avatar>
         </div>
+
+        <Button variant="outline" size="sm" @click="showLabels = true">Метки</Button>
 
         <Button
           variant="outline"
@@ -367,6 +371,9 @@ async function onCardDrop(columnId: string, event: any) {
         >+ Add column</Button>
       </div>
     </div>
+
+    <!-- Labels manager -->
+    <LabelsManager v-if="showLabels" @close="showLabels = false" />
 
     <!-- Card modal -->
     <CardModal v-if="store.activeCard" @close="store.closeCard()" />

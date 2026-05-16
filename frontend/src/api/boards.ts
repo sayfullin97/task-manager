@@ -19,4 +19,8 @@ export const boardsApi = {
   listLabels: (boardId: string) => client.get<Label[]>(`/boards/${boardId}/labels`),
   createLabel: (boardId: string, name: string, color: string) =>
     client.post<Label>(`/boards/${boardId}/labels`, { name, color }),
+  updateLabel: (labelId: string, name: string, color: string) =>
+    client.put<Label>(`/labels/${labelId}`, { name, color }),
+  deleteLabel: (labelId: string) =>
+    client.delete(`/labels/${labelId}`),
 }

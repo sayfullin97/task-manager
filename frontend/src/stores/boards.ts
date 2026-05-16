@@ -79,6 +79,40 @@ export const useBoardsStore = defineStore('boards', () => {
     activeCard.value = null
   }
 
+  async function createBoardLabel(boardId: string, name: string, color: string) {
+    const { data } = await boardsApi.createLabel(boardId, name, color)
+    currentBoard.value?.labels.push(data)
+    return data
+  }
+
+  async function updateBoardLabel(labelId: string, name: string, color: string) {
+    const { data } = await boardsApi.updateLabel(labelId, name, color)
+    if (currentBoard.value) {
+      const idx = currentBoard.value.labels.findIndex(l => l.id === labelId)
+      if (idx !== -1) currentBoard.value.labels[idx] = data
+      // Sync label in all cards
+      for (const col of currentBoard.value.columns) {
+        for (const card of col.cards) {
+          const ci = card.labels.findIndex(l => l.id === labelId)
+          if (ci !== -1) card.labels[ci] = data
+        }
+      }
+    }
+    return data
+  }
+
+  async function deleteBoardLabel(labelId: string) {
+    await boardsApi.deleteLabel(labelId)
+    if (currentBoard.value) {
+      currentBoard.value.labels = currentBoard.value.labels.filter(l => l.id !== labelId)
+      for (const col of currentBoard.value.columns) {
+        for (const card of col.cards) {
+          card.labels = card.labels.filter(l => l.id !== labelId)
+        }
+      }
+    }
+  }
+
   async function updateColumnPositions(_boardId?: string) {
     if (!currentBoard.value) return
     const updates = currentBoard.value.columns.map((col, i) =>
@@ -101,5 +135,8 @@ export const useBoardsStore = defineStore('boards', () => {
     openCard,
     closeCard,
     updateColumnPositions,
+    createBoardLabel,
+    updateBoardLabel,
+    deleteBoardLabel,
   }
 })
