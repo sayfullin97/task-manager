@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -13,6 +12,8 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  // Lazy import stores to avoid Pinia initialization order issues
+  const { useAuthStore } = await import('@/stores/auth')
   const auth = useAuthStore()
   const hasToken = auth.loadFromStorage()
 

@@ -13,8 +13,11 @@ from app.schemas.card import (
     MoveCardRequest,
 )
 from app.schemas.comment import CommentCreate, CommentUpdate
+from app.schemas.label import LabelUpdate
+from app.schemas.board import LabelOut
 from app.services.auth import get_current_user
 from app.services import cards as card_service
+from app.services import labels as label_service
 
 router = APIRouter(tags=["cards"])
 
@@ -139,15 +142,14 @@ async def delete_comment(
     await card_service.delete_comment(comment_id, current_user.id, db)
 
 
-@router.put("/labels/{label_id}")
+@router.put("/labels/{label_id}", response_model=LabelOut)
 async def update_label(
     label_id: str,
+    data: LabelUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.schemas.label import LabelUpdate
-    from app.services import labels as label_service
-    pass
+    return await label_service.update_label(label_id, data, current_user.id, db)
 
 
 @router.delete("/labels/{label_id}", status_code=204)
