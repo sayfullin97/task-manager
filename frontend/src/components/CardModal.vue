@@ -17,10 +17,11 @@ const store = useBoardsStore()
 const toast = useToastStore()
 const card = store.activeCard!
 const deleting = ref(false)
+const confirmDelete = ref(false)
 
-async function deleteCard() {
-  if (!confirm('Удалить карточку? Это действие нельзя отменить.')) return
+async function doDeleteCard() {
   deleting.value = true
+  confirmDelete.value = false
   try {
     await store.deleteCard(card.id)
     emit('close')
@@ -259,9 +260,16 @@ async function deleteComment(commentId: string) {
         <Separator />
 
         <!-- Danger zone -->
-        <div class="flex justify-end">
-          <Button variant="outline" size="sm" :disabled="deleting" class="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground" @click="deleteCard">
-            {{ deleting ? 'Удаляю...' : 'Удалить карточку' }}
+        <div class="flex items-center justify-end gap-2">
+          <template v-if="confirmDelete">
+            <span class="text-xs text-muted-foreground">Удалить навсегда?</span>
+            <Button variant="destructive" size="sm" :disabled="deleting" @click="doDeleteCard">
+              {{ deleting ? 'Удаляю...' : 'Да, удалить' }}
+            </Button>
+            <Button variant="ghost" size="sm" @click="confirmDelete = false">Отмена</Button>
+          </template>
+          <Button v-else variant="outline" size="sm" class="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground" @click="confirmDelete = true">
+            Удалить карточку
           </Button>
         </div>
       </div>
