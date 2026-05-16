@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -37,12 +38,12 @@ class AdminUserOut(BaseModel):
 class AdminBoardOut(BaseModel):
     id: str
     title: str
-    description: str | None
+    description: Optional[str]
     owner_name: str
     owner_email: str
     member_count: int
     card_count: int
-    created_at: str | None = None
+    created_at: Optional[str] = None
 
 
 class StatsOut(BaseModel):
