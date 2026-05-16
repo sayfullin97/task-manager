@@ -7,7 +7,7 @@ import { useToastStore } from '@/stores/toast'
 import { useTheme } from '@/composables/useTheme'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
+import { Dialog, DialogScrollContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -40,10 +40,9 @@ function logout() {
   router.push('/login')
 }
 
-const COLORS = ['bg-blue-500', 'bg-violet-500', 'bg-rose-500', 'bg-emerald-500', 'bg-amber-500', 'bg-cyan-500']
+const COLORS = ['#2563a8', '#5c3ea8', '#a83250', '#1a7a52', '#a87820', '#1a7a8e']
 function boardColor(id: string) {
-  const idx = id.charCodeAt(0) % COLORS.length
-  return COLORS[idx]
+  return COLORS[id.charCodeAt(0) % COLORS.length]
 }
 </script>
 
@@ -54,11 +53,12 @@ function boardColor(id: string) {
       <h1 class="text-xl font-bold">Task Manager</h1>
       <div class="flex items-center gap-3">
         <span class="text-sm text-muted-foreground">{{ auth.user?.name }}</span>
-        <button
-          class="w-8 h-8 rounded-md border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        <Button
+          variant="outline"
+          size="icon"
           :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
           @click="toggleTheme"
-        >{{ isDark ? '☀️' : '🌙' }}</button>
+        >{{ isDark ? '☀️' : '🌙' }}</Button>
         <Button variant="outline" size="sm" @click="logout">Logout</Button>
       </div>
     </header>
@@ -66,21 +66,24 @@ function boardColor(id: string) {
     <main class="max-w-6xl mx-auto px-6 py-8">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-semibold">My Boards</h2>
-        <Button @click="showCreate = true">+ New Board</Button>
+        <Button @click="showCreate = true; newTitle = ''">+ New Board</Button>
       </div>
 
-      <!-- Create board form -->
-      <Card v-if="showCreate" class="p-4 mb-6 max-w-sm">
-        <div class="space-y-3">
-          <Input v-model="newTitle" placeholder="Board title" autofocus @keyup.enter="createBoard" />
-          <div class="flex gap-2">
-            <Button size="sm" :disabled="creating" @click="createBoard">
-              {{ creating ? 'Creating...' : 'Create' }}
-            </Button>
-            <Button size="sm" variant="ghost" @click="showCreate = false; newTitle = ''">Cancel</Button>
+      <!-- Create board dialog -->
+      <Dialog :open="showCreate" @update:open="showCreate = false">
+        <DialogScrollContent class="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Board</DialogTitle>
+          </DialogHeader>
+          <div class="flex flex-col gap-4 pt-2">
+            <Input v-model="newTitle" placeholder="Board title" autofocus @keyup.enter="createBoard" />
+            <div class="flex gap-2">
+              <Button :disabled="creating" @click="createBoard">{{ creating ? 'Creating...' : 'Create' }}</Button>
+              <Button variant="ghost" @click="showCreate = false; newTitle = ''">Cancel</Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </DialogScrollContent>
+      </Dialog>
 
       <!-- Boards grid -->
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -91,7 +94,7 @@ function boardColor(id: string) {
           class="group"
         >
           <div class="rounded-lg overflow-hidden border hover:shadow-md transition-shadow cursor-pointer">
-            <div :class="[boardColor(board.id), 'h-20']" />
+            <div :style="{ background: boardColor(board.id) }" class="h-20" />
             <div class="p-3 bg-card">
               <p class="font-medium text-sm truncate">{{ board.title }}</p>
               <p v-if="board.description" class="text-xs text-muted-foreground mt-0.5 truncate">{{ board.description }}</p>

@@ -3,7 +3,13 @@ import { ref, computed } from 'vue'
 import { useBoardsStore } from '@/stores/boards'
 import { cardsApi } from '@/api/cards'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import {
+  Dialog, DialogScrollContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
 
 const emit = defineEmits<{ close: [] }>()
 const store = useBoardsStore()
@@ -17,11 +23,10 @@ const addingComment = ref(false)
 const dueDate = ref(card.due_date ? card.due_date.slice(0, 10) : '')
 
 const COVER_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6',
+  '#a83232', '#a86432', '#8a7820', '#1a7a52',
+  '#2563a8', '#5c3ea8', '#a83278', '#1a7a8e',
 ]
 
-// Sync labels/assignees/cover back to the kanban card brief
 function syncBrief() {
   const col = store.currentBoard?.columns.find(c => c.id === card.column_id)
   const brief = col?.cards.find(c => c.id === card.id)
@@ -63,15 +68,13 @@ async function setCoverColor(color: string | null) {
   syncBrief()
 }
 
-// Labels
 const boardLabels = computed(() => store.currentBoard?.labels ?? [])
 const cardLabelIds = computed(() => new Set(card.labels.map(l => l.id)))
 
 async function toggleLabel(labelId: string) {
   if (cardLabelIds.value.has(labelId)) {
     await cardsApi.removeLabel(card.id, labelId)
-    const idx = card.labels.findIndex(l => l.id === labelId)
-    if (idx !== -1) card.labels.splice(idx, 1)
+    card.labels.splice(card.labels.findIndex(l => l.id === labelId), 1)
   } else {
     const { data } = await cardsApi.addLabel(card.id, labelId)
     card.labels = data.labels
@@ -79,15 +82,13 @@ async function toggleLabel(labelId: string) {
   syncBrief()
 }
 
-// Assignees
 const boardMembers = computed(() => store.currentBoard?.members ?? [])
 const cardAssigneeIds = computed(() => new Set(card.assignees.map(u => u.id)))
 
 async function toggleAssignee(userId: string) {
   if (cardAssigneeIds.value.has(userId)) {
     await cardsApi.removeAssignee(card.id, userId)
-    const idx = card.assignees.findIndex(u => u.id === userId)
-    if (idx !== -1) card.assignees.splice(idx, 1)
+    card.assignees.splice(card.assignees.findIndex(u => u.id === userId), 1)
   } else {
     const { data } = await cardsApi.addAssignee(card.id, userId)
     card.assignees = data.assignees
@@ -95,7 +96,6 @@ async function toggleAssignee(userId: string) {
   syncBrief()
 }
 
-// Comments
 async function postComment() {
   if (!newComment.value.trim()) return
   addingComment.value = true
@@ -110,124 +110,126 @@ async function postComment() {
 
 async function deleteComment(commentId: string) {
   await cardsApi.deleteComment(commentId)
-  const idx = card.comments.findIndex(c => c.id === commentId)
-  if (idx !== -1) card.comments.splice(idx, 1)
+  card.comments.splice(card.comments.findIndex(c => c.id === commentId), 1)
 }
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-start justify-center pt-16 z-50 px-4" @click.self="emit('close')">
-    <div class="bg-card rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+  <Dialog :open="true" @update:open="emit('close')">
+    <DialogScrollContent class="max-w-2xl p-0 gap-0 overflow-hidden">
       <!-- Cover -->
-      <div v-if="card.cover_color" :style="{ background: card.cover_color }" class="h-32 rounded-t-xl" />
+      <div v-if="card.cover_color" :style="{ background: card.cover_color }" class="h-28 w-full" />
 
-      <div class="p-6 space-y-6">
+      <div class="p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto">
         <!-- Title -->
-        <div class="flex items-start gap-3">
-          <div class="flex-1">
+        <DialogHeader>
+          <DialogTitle as="div">
             <input
               v-model="title"
-              class="w-full text-xl font-bold bg-transparent border-none outline-none focus:bg-muted/50 rounded px-1 -mx-1"
+              class="w-full text-lg font-semibold bg-transparent outline-none border-b border-transparent focus:border-border rounded-sm px-0 transition-colors"
               @blur="saveTitle"
-              @keyup.enter="saveTitle"
+              @keyup.enter="($event.target as HTMLInputElement).blur()"
             />
-          </div>
-          <button class="text-muted-foreground hover:text-foreground mt-1" @click="emit('close')">✕</button>
+          </DialogTitle>
+        </DialogHeader>
+
+        <!-- Due date -->
+        <div class="flex flex-col gap-1.5">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Due date</p>
+          <input
+            type="date"
+            v-model="dueDate"
+            class="w-fit text-sm border border-border rounded-md px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-ring transition-colors"
+            @change="saveDueDate"
+          />
         </div>
 
-        <!-- Meta row: due date -->
-        <div class="flex flex-wrap gap-4">
-          <div>
-            <p class="text-xs font-semibold text-muted-foreground uppercase mb-1">Due date</p>
-            <input
-              type="date"
-              v-model="dueDate"
-              class="text-sm bg-muted/50 border border-input rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
-              @change="saveDueDate"
-            />
-          </div>
-        </div>
+        <Separator />
 
-        <!-- Labels selector -->
-        <div v-if="boardLabels.length">
-          <p class="text-xs font-semibold text-muted-foreground uppercase mb-2">Labels</p>
+        <!-- Labels -->
+        <div v-if="boardLabels.length" class="flex flex-col gap-2">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Labels</p>
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="label in boardLabels"
               :key="label.id"
-              :style="{ background: label.color, opacity: cardLabelIds.has(label.id) ? 1 : 0.35 }"
-              class="text-xs text-white px-2.5 py-1 rounded-full transition-opacity hover:opacity-100 border-2"
-              :class="cardLabelIds.has(label.id) ? 'border-white/40' : 'border-transparent'"
+              :style="{ background: label.color }"
+              class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium text-white transition-all border-2"
+              :class="cardLabelIds.has(label.id) ? 'border-foreground/50 scale-105' : 'border-transparent opacity-40 hover:opacity-80'"
               @click="toggleLabel(label.id)"
             >{{ label.name }}</button>
           </div>
         </div>
 
-        <!-- Assignees selector -->
-        <div v-if="boardMembers.length">
-          <p class="text-xs font-semibold text-muted-foreground uppercase mb-2">Members</p>
-          <div class="flex gap-2 flex-wrap">
+        <!-- Members -->
+        <div v-if="boardMembers.length" class="flex flex-col gap-2">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Members</p>
+          <div class="flex flex-wrap gap-2">
             <button
               v-for="member in boardMembers"
               :key="member.user.id"
-              class="flex items-center gap-1.5 rounded-full px-2.5 py-1 border-2 transition-colors"
+              class="flex items-center gap-2 rounded-full border px-2 py-1 transition-colors"
               :class="cardAssigneeIds.has(member.user.id)
-                ? 'bg-primary/10 border-primary'
-                : 'bg-muted border-transparent hover:border-muted-foreground/30'"
+                ? 'border-foreground bg-muted text-foreground'
+                : 'border-border bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted'"
               @click="toggleAssignee(member.user.id)"
             >
-              <div class="w-5 h-5 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
-                {{ member.user.name[0].toUpperCase() }}
-              </div>
-              <span class="text-xs">{{ member.user.name }}</span>
+              <Avatar data-size="sm">
+                <AvatarFallback class="text-[10px]">{{ member.user.name[0].toUpperCase() }}</AvatarFallback>
+              </Avatar>
+              <span class="text-xs font-medium">{{ member.user.name }}</span>
             </button>
           </div>
         </div>
 
-        <!-- Cover color -->
-        <div>
-          <p class="text-xs font-semibold text-muted-foreground uppercase mb-2">Cover</p>
+        <!-- Cover -->
+        <div class="flex flex-col gap-2">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cover</p>
           <div class="flex gap-2">
             <button
               v-for="color in COVER_COLORS"
               :key="color"
               :style="{ background: color }"
-              class="w-7 h-7 rounded-md border-2 transition-transform hover:scale-110"
+              class="w-7 h-7 rounded-md border-2 transition-all hover:scale-110"
               :class="card.cover_color === color ? 'border-foreground scale-110' : 'border-transparent'"
               @click="setCoverColor(card.cover_color === color ? null : color)"
             />
+            <Button v-if="card.cover_color" variant="outline" size="sm" @click="setCoverColor(null)">Remove</Button>
           </div>
         </div>
 
+        <Separator />
+
         <!-- Description -->
-        <div>
-          <p class="text-xs font-semibold text-muted-foreground uppercase mb-2">Description</p>
-          <textarea
+        <div class="flex flex-col gap-2">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Description</p>
+          <Textarea
             v-model="description"
-            rows="4"
             placeholder="Add a description..."
-            class="w-full text-sm bg-muted/50 border border-input rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            class="min-h-[80px] resize-none"
             @blur="saveDescription"
           />
         </div>
 
-        <!-- Comments -->
-        <div>
-          <p class="text-xs font-semibold text-muted-foreground uppercase mb-3">Comments</p>
+        <Separator />
 
-          <div class="space-y-3 mb-4">
+        <!-- Comments -->
+        <div class="flex flex-col gap-3">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Comments</p>
+
+          <div class="flex flex-col gap-3">
             <div v-for="comment in card.comments" :key="comment.id" class="flex gap-2.5">
-              <div class="w-7 h-7 rounded-full bg-primary text-xs text-primary-foreground flex items-center justify-center flex-shrink-0">
-                {{ comment.user.name[0].toUpperCase() }}
-              </div>
-              <div class="flex-1">
+              <Avatar data-size="sm">
+                <AvatarFallback class="text-[10px]">{{ comment.user.name[0].toUpperCase() }}</AvatarFallback>
+              </Avatar>
+              <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium">{{ comment.user.name }}</span>
-                  <span class="text-xs text-muted-foreground">{{ new Date(comment.created_at).toLocaleString() }}</span>
+                  <span class="text-xs font-medium">{{ comment.user.name }}</span>
+                  <span class="text-[10px] text-muted-foreground">{{ new Date(comment.created_at).toLocaleString() }}</span>
                 </div>
-                <p class="text-sm mt-0.5">{{ comment.text }}</p>
+                <p class="text-xs mt-0.5 text-foreground">{{ comment.text }}</p>
               </div>
-              <button class="text-muted-foreground hover:text-destructive text-xs self-start mt-1" @click="deleteComment(comment.id)">✕</button>
+              <Button variant="ghost" size="icon-sm" class="text-muted-foreground hover:text-destructive flex-shrink-0" @click="deleteComment(comment.id)">✕</Button>
             </div>
           </div>
 
@@ -237,6 +239,6 @@ async function deleteComment(commentId: string) {
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </DialogScrollContent>
+  </Dialog>
 </template>

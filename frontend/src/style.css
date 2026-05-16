@@ -13,70 +13,51 @@
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.491 0.27 292.581);
-    --primary-foreground: oklch(0.969 0.016 293.756);
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.967 0 0);
+    --secondary-foreground: oklch(0.21 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: 210 40% 98%;
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --radius: 0.875rem;
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.88 0 0);
+    --input: oklch(0.92 0 0);
+    --ring: oklch(0.5 0 0);
+    --radius: 0.75rem;
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --chart-1: oklch(0.811 0.111 293.571);
-    --chart-2: oklch(0.606 0.25 292.717);
-    --chart-3: oklch(0.541 0.281 293.009);
-    --chart-4: oklch(0.491 0.27 292.581);
-    --chart-5: oklch(0.432 0.232 292.759);
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.541 0.281 293.009);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-border: oklch(0.88 0 0);
   }
 
   .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
+    --card: oklch(0.2 0 0);
     --card-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.432 0.232 292.759);
-    --primary-foreground: oklch(0.969 0.016 293.756);
-    --secondary: oklch(0.274 0.006 286.033);
+    --primary: oklch(0.92 0 0);
+    --primary-foreground: oklch(0.145 0 0);
+    --secondary: oklch(0.26 0 0);
     --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
+    --muted: oklch(0.26 0 0);
+    --muted-foreground: oklch(0.65 0 0);
+    --accent: oklch(0.26 0 0);
     --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: 210 40% 98%;
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --popover: oklch(0.205 0 0);
+    --destructive: oklch(0.65 0.22 25);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.32 0 0);
+    --input: oklch(0.28 0 0);
+    --ring: oklch(0.65 0 0);
+    --popover: oklch(0.2 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --chart-1: oklch(0.811 0.111 293.571);
-    --chart-2: oklch(0.606 0.25 292.717);
-    --chart-3: oklch(0.541 0.281 293.009);
-    --chart-4: oklch(0.491 0.27 292.581);
-    --chart-5: oklch(0.432 0.232 292.759);
-    --sidebar: oklch(0.205 0 0);
+    --sidebar: oklch(0.2 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.606 0.25 292.717);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-border: oklch(0.32 0 0);
+    color-scheme: dark;
   }
 
   * {
@@ -92,19 +73,26 @@
   #app {
     min-height: 100vh;
   }
-  .theme {
-    --font-sans: 'Figtree Variable', sans-serif;
-    --font-heading: var(--font-sans);
+
+  /* Input/textarea backgrounds — override browser defaults */
+  [data-slot="input"],
+  [data-slot="textarea"] {
+    background-color: var(--background);
   }
-}
 
-
-
-@layer base {
-  * {
-    @apply border-border;
+  .dark [data-slot="input"],
+  .dark [data-slot="textarea"] {
+    background-color: var(--input);
+    border-color: var(--border);
   }
-  body {
-    @apply bg-background text-foreground;
+
+  /* Native date/time inputs in dark mode */
+  .dark input[type="date"],
+  .dark input[type="datetime-local"],
+  .dark input[type="time"] {
+    color-scheme: dark;
+    background-color: var(--input);
+    color: var(--foreground);
+    border-color: var(--border);
   }
 }

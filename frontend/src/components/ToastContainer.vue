@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToastStore } from '@/stores/toast'
+import { Button } from '@/components/ui/button'
 
 const toast = useToastStore()
 </script>
@@ -17,15 +18,15 @@ const toast = useToastStore()
         leave-active-class="transition duration-200"
       >
         <div
-          class="flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm w-full"
+          class="flex items-start gap-3 pl-3 pr-4 py-3 rounded-lg shadow-lg text-sm max-w-sm w-full bg-card text-foreground border border-border border-l-4"
           :class="{
-            'bg-emerald-600 text-white': t.type === 'success',
-            'bg-destructive text-destructive-foreground': t.type === 'error',
-            'bg-card text-foreground border border-border': t.type === 'info',
+            'border-l-emerald-500': t.type === 'success',
+            'border-l-destructive': t.type === 'error',
+            'border-l-primary': t.type === 'info',
           }"
         >
           <span class="flex-1">{{ t.message }}</span>
-          <button class="opacity-70 hover:opacity-100 ml-2 flex-shrink-0" @click="toast.remove(t.id)">✕</button>
+          <Button variant="ghost" size="icon-sm" class="opacity-70 hover:opacity-100 ml-2 flex-shrink-0 shrink-0" @click="toast.remove(t.id)">✕</Button>
         </div>
       </Transition>
     </div>

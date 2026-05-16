@@ -8,6 +8,8 @@ import { useTheme } from '@/composables/useTheme'
 import { boardsApi } from '@/api/boards'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogScrollContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import CardModal from '@/components/CardModal.vue'
 import type { CardBrief } from '@/types'
 
@@ -143,45 +145,44 @@ async function onCardDrop(columnId: string, event: any) {
 
     <!-- Header -->
     <header class="px-4 py-2.5 flex items-center gap-3 bg-card border-b border-border">
-      <button
-        class="text-muted-foreground hover:text-foreground text-sm transition-colors flex items-center gap-1"
-        @click="router.push('/boards')"
-      >← Boards</button>
+      <Button variant="ghost" size="sm" class="gap-1 text-muted-foreground" @click="router.push('/boards')">← Boards</Button>
       <span class="text-border">|</span>
       <h1 class="font-semibold flex-1 truncate">{{ store.currentBoard?.title }}</h1>
 
       <div class="flex items-center gap-1.5">
         <!-- Members avatars -->
         <div class="flex -space-x-1.5 mr-1">
-          <div
+          <Avatar
             v-for="m in store.currentBoard?.members.slice(0, 4)"
             :key="m.user.id"
+            size="sm"
             :title="m.user.name"
-            class="w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center border-2 border-card font-medium"
-          >{{ m.user.name[0].toUpperCase() }}</div>
+            class="border-2 border-card"
+          >
+            <AvatarFallback class="text-[10px] bg-primary text-primary-foreground">{{ m.user.name[0].toUpperCase() }}</AvatarFallback>
+          </Avatar>
         </div>
 
-        <button
-          class="text-sm px-2.5 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          :class="showFilters ? 'bg-muted text-foreground' : ''"
+        <Button
+          variant="outline"
+          size="sm"
+          :class="showFilters ? 'bg-muted' : ''"
           @click="showFilters = !showFilters"
-        >Фильтр{{ hasFilters ? ' ●' : '' }}</button>
+        >Фильтр{{ hasFilters ? ' ●' : '' }}</Button>
 
-        <button
-          class="w-8 h-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
           :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
           @click="toggleTheme"
-        >{{ isDark ? '☀️' : '🌙' }}</button>
+        >{{ isDark ? '☀️' : '🌙' }}</Button>
 
-        <button
-          class="text-sm px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          @click="showInvite = true"
-        >+ Invite</button>
+        <Button size="sm" @click="showInvite = true">+ Invite</Button>
       </div>
     </header>
 
     <!-- Filter bar -->
-    <div v-if="showFilters && store.currentBoard" class="px-4 py-2 bg-muted/50 border-b border-border flex flex-wrap items-center gap-4">
+    <div v-if="showFilters && store.currentBoard" class="px-4 py-2 bg-muted border-b border-border flex flex-wrap items-center gap-4">
       <div v-if="store.currentBoard.labels.length" class="flex items-center gap-1.5 flex-wrap">
         <span class="text-xs font-medium text-muted-foreground">Метки:</span>
         <button
@@ -200,42 +201,50 @@ async function onCardDrop(columnId: string, event: any) {
           v-for="m in store.currentBoard.members"
           :key="m.user.id"
           :title="m.user.name"
-          class="w-6 h-6 rounded-full text-[10px] font-medium flex items-center justify-center border-2 transition-all bg-primary text-primary-foreground"
-          :class="selectedMemberIds.has(m.user.id) ? 'border-foreground scale-110' : 'border-transparent opacity-50 hover:opacity-100'"
+          class="transition-all"
+          :class="selectedMemberIds.has(m.user.id) ? 'scale-110' : 'opacity-50 hover:opacity-100'"
           @click="toggleMemberFilter(m.user.id)"
-        >{{ m.user.name[0].toUpperCase() }}</button>
+        >
+          <Avatar size="sm" :class="selectedMemberIds.has(m.user.id) ? 'ring-2 ring-foreground' : ''">
+            <AvatarFallback class="text-[10px] bg-primary text-primary-foreground">{{ m.user.name[0].toUpperCase() }}</AvatarFallback>
+          </Avatar>
+        </button>
       </div>
 
       <div class="flex items-center gap-1.5 flex-wrap">
         <span class="text-xs font-medium text-muted-foreground">Дедлайн:</span>
-        <button
+        <Button
           v-for="opt in [{ v: 'overdue', l: 'Просрочено' }, { v: 'week', l: 'На неделе' }, { v: 'none', l: 'Без даты' }]"
           :key="opt.v"
-          class="text-xs px-2 py-0.5 rounded-full border border-border transition-colors"
-          :class="dueDateFilter === opt.v ? 'bg-primary text-primary-foreground border-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'"
+          :variant="dueDateFilter === opt.v ? 'default' : 'outline'"
+          size="xs"
           @click="dueDateFilter = dueDateFilter === opt.v ? null : opt.v as any"
-        >{{ opt.l }}</button>
+        >{{ opt.l }}</Button>
       </div>
 
-      <button v-if="hasFilters" class="text-xs text-muted-foreground hover:text-foreground underline ml-auto" @click="clearFilters">
+      <Button v-if="hasFilters" variant="ghost" size="xs" class="ml-auto text-muted-foreground" @click="clearFilters">
         Сбросить
-      </button>
+      </Button>
     </div>
 
     <!-- Invite modal -->
-    <div v-if="showInvite" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" @click.self="showInvite = false">
-      <div class="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
-        <h2 class="font-semibold text-lg">Пригласить участника</h2>
-        <Input v-model="inviteEmail" placeholder="email@example.com" type="email" autofocus @keyup.enter="inviteMember" />
-        <div class="flex gap-2">
-          <Button :disabled="inviting" @click="inviteMember">{{ inviting ? 'Добавляю...' : 'Добавить' }}</Button>
-          <Button variant="ghost" @click="showInvite = false">Отмена</Button>
+    <Dialog :open="showInvite" @update:open="showInvite = false">
+      <DialogScrollContent class="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Пригласить участника</DialogTitle>
+        </DialogHeader>
+        <div class="flex flex-col gap-4 pt-2">
+          <Input v-model="inviteEmail" placeholder="email@example.com" type="email" autofocus @keyup.enter="inviteMember" />
+          <div class="flex gap-2">
+            <Button :disabled="inviting" @click="inviteMember">{{ inviting ? 'Добавляю...' : 'Добавить' }}</Button>
+            <Button variant="ghost" @click="showInvite = false">Отмена</Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </DialogScrollContent>
+    </Dialog>
 
     <!-- Board columns -->
-    <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto bg-muted/30">
+    <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto bg-muted">
       <draggable
         v-if="store.currentBoard"
         :list="store.currentBoard.columns"
@@ -252,10 +261,12 @@ async function onCardDrop(columnId: string, event: any) {
           <!-- Column header -->
           <div class="col-drag-handle px-3 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
             <span class="font-semibold text-sm flex-1">{{ col.title }}</span>
-            <button
-              class="text-muted-foreground hover:text-destructive text-xs ml-2 cursor-pointer transition-colors"
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              class="ml-1 text-muted-foreground hover:text-destructive cursor-pointer"
               @click.stop="store.deleteColumn(col.id)"
-            >✕</button>
+            >✕</Button>
           </div>
 
           <!-- Cards -->
@@ -291,11 +302,14 @@ async function onCardDrop(columnId: string, event: any) {
                         📅 {{ new Date(card.due_date).toLocaleDateString() }}
                       </span>
                       <div class="flex -space-x-1 ml-auto">
-                        <div
+                        <Avatar
                           v-for="user in card.assignees?.slice(0, 3)"
                           :key="user.id"
-                          class="w-5 h-5 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center border border-card font-medium"
-                        >{{ user.name[0].toUpperCase() }}</div>
+                          size="sm"
+                          class="!size-5 border border-card"
+                        >
+                          <AvatarFallback class="text-[10px] bg-primary text-primary-foreground">{{ user.name[0].toUpperCase() }}</AvatarFallback>
+                        </Avatar>
                       </div>
                     </div>
                   </div>
@@ -310,21 +324,21 @@ async function onCardDrop(columnId: string, event: any) {
               <Input
                 v-model="newCardTitle"
                 placeholder="Card title..."
-                class="text-sm h-8"
                 autofocus
                 @keyup.enter="addCard(col.id)"
                 @keyup.esc="addingCardColId = null"
               />
               <div class="flex gap-1">
-                <Button size="sm" class="h-7 text-xs" @click="addCard(col.id)">Add</Button>
-                <Button size="sm" variant="ghost" class="h-7 text-xs" @click="addingCardColId = null">Cancel</Button>
+                <Button size="sm" @click="addCard(col.id)">Add</Button>
+                <Button size="sm" variant="ghost" @click="addingCardColId = null">Cancel</Button>
               </div>
             </div>
-            <button
+            <Button
               v-else
-              class="w-full text-left text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1.5 rounded-md transition-colors"
+              variant="ghost"
+              class="w-full justify-start text-muted-foreground hover:text-foreground text-xs"
               @click="startAddCard(col.id)"
-            >+ Add a card</button>
+            >+ Add a card</Button>
           </div>
         </div>
         </template>
@@ -345,11 +359,12 @@ async function onCardDrop(columnId: string, event: any) {
             <Button size="sm" variant="ghost" @click="addingCol = false">Cancel</Button>
           </div>
         </div>
-        <button
+        <Button
           v-else
-          class="w-full text-left text-muted-foreground hover:text-foreground hover:bg-card/80 border border-dashed border-border hover:border-primary/30 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+          variant="outline"
+          class="w-full justify-start border-dashed text-muted-foreground hover:text-foreground rounded-xl py-5"
           @click="addingCol = true"
-        >+ Add column</button>
+        >+ Add column</Button>
       </div>
     </div>
 
