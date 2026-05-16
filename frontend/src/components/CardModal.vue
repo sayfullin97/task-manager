@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useBoardsStore } from '@/stores/boards'
+import { useToastStore } from '@/stores/toast'
 import { cardsApi } from '@/api/cards'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,7 +14,23 @@ import {
 
 const emit = defineEmits<{ close: [] }>()
 const store = useBoardsStore()
+const toast = useToastStore()
 const card = store.activeCard!
+const deleting = ref(false)
+
+async function deleteCard() {
+  if (!confirm('Удалить карточку? Это действие нельзя отменить.')) return
+  deleting.value = true
+  try {
+    await store.deleteCard(card.id)
+    emit('close')
+    toast.success('Карточка удалена')
+  } catch {
+    // toast shown by interceptor
+  } finally {
+    deleting.value = false
+  }
+}
 
 const title = ref(card.title)
 const description = ref(card.description ?? '')
@@ -237,6 +254,15 @@ async function deleteComment(commentId: string) {
             <Input v-model="newComment" placeholder="Write a comment..." class="flex-1" @keyup.enter="postComment" />
             <Button size="sm" :disabled="addingComment" @click="postComment">Post</Button>
           </div>
+        </div>
+
+        <Separator />
+
+        <!-- Danger zone -->
+        <div class="flex justify-end">
+          <Button variant="outline" size="sm" :disabled="deleting" class="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground" @click="deleteCard">
+            {{ deleting ? 'Удаляю...' : 'Удалить карточку' }}
+          </Button>
         </div>
       </div>
     </DialogScrollContent>

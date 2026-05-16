@@ -26,6 +26,44 @@ const addingCol = ref(false)
 const addingCardColId = ref<string | null>(null)
 const newCardTitle = ref('')
 
+// Board title inline edit
+const editingBoardTitle = ref(false)
+const boardTitleDraft = ref('')
+function startEditBoardTitle() {
+  boardTitleDraft.value = store.currentBoard?.title ?? ''
+  editingBoardTitle.value = true
+}
+async function saveBoardTitle() {
+  editingBoardTitle.value = false
+  const trimmed = boardTitleDraft.value.trim()
+  if (!trimmed || trimmed === store.currentBoard?.title) return
+  try {
+    await store.updateBoard(boardId, trimmed, store.currentBoard?.description)
+  } catch { /* toast shown by interceptor */ }
+}
+
+// Column inline rename
+const editingColId = ref<string | null>(null)
+const editingColTitle = ref('')
+function startEditCol(colId: string, currentTitle: string) {
+  editingColId.value = colId
+  editingColTitle.value = currentTitle
+}
+async function saveColTitle() {
+  const colId = editingColId.value
+  const trimmed = editingColTitle.value.trim()
+  editingColId.value = null
+  if (!colId || !trimmed) return
+  const col = store.currentBoard?.columns.find(c => c.id === colId)
+  if (!col || trimmed === col.title) return
+  try {
+    await store.updateColumn(colId, trimmed)
+  } catch { /* toast shown by interceptor */ }
+}
+
+// Search
+const searchQuery = ref('')
+
 // Drag state
 const isDragging = ref(false)
 const dragOverColId = ref<string | null>(null)
@@ -78,12 +116,14 @@ const hasFilters = computed(() =>
 )
 
 const matchingCardIds = computed<Set<string> | null>(() => {
-  if (!hasFilters.value) return null
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!hasFilters.value && !q) return null
   const result = new Set<string>()
   for (const col of store.currentBoard?.columns ?? []) {
     for (const card of col.cards) {
       let match = true
-      if (selectedLabelIds.value.size > 0) {
+      if (q && !card.title.toLowerCase().includes(q)) match = false
+      if (match && selectedLabelIds.value.size > 0) {
         const ids = new Set(card.labels.map(l => l.id))
         if (![...selectedLabelIds.value].some(id => ids.has(id))) match = false
       }
@@ -168,7 +208,23 @@ async function onCardDrop(columnId: string, event: any) {
     <header class="px-4 py-2.5 flex items-center gap-3 bg-card border-b border-border">
       <Button variant="ghost" size="sm" class="gap-1 text-muted-foreground" @click="router.push('/boards')">← Boards</Button>
       <span class="text-border">|</span>
-      <h1 class="font-semibold flex-1 truncate">{{ store.currentBoard?.title }}</h1>
+
+      <!-- Board title — click to edit -->
+      <input
+        v-if="editingBoardTitle"
+        v-model="boardTitleDraft"
+        class="font-semibold bg-transparent border-b border-ring outline-none flex-1 min-w-0 truncate"
+        autofocus
+        @blur="saveBoardTitle"
+        @keyup.enter="saveBoardTitle"
+        @keyup.esc="editingBoardTitle = false"
+      />
+      <h1
+        v-else
+        class="font-semibold flex-1 truncate cursor-pointer hover:text-muted-foreground transition-colors"
+        :title="'Нажмите, чтобы переименовать'"
+        @click="startEditBoardTitle"
+      >{{ store.currentBoard?.title }}</h1>
 
       <div class="flex items-center gap-1.5">
         <!-- Members avatars -->
@@ -183,6 +239,13 @@ async function onCardDrop(columnId: string, event: any) {
             <AvatarFallback class="text-[10px] bg-primary text-primary-foreground">{{ m.user.name[0].toUpperCase() }}</AvatarFallback>
           </Avatar>
         </div>
+
+        <!-- Search -->
+        <Input
+          v-model="searchQuery"
+          placeholder="Поиск карточек..."
+          class="h-8 w-40 text-xs"
+        />
 
         <Button variant="outline" size="sm" @click="showLabels = true">Метки</Button>
 
@@ -268,8 +331,20 @@ async function onCardDrop(columnId: string, event: any) {
 
     <!-- Board columns -->
     <div class="flex-1 flex items-start gap-3 p-4 overflow-x-auto bg-muted">
+
+      <!-- Skeleton while loading -->
+      <template v-if="store.boardLoading">
+        <div v-for="i in 3" :key="i" class="flex-shrink-0 w-72 bg-card border border-border rounded-xl p-3 space-y-2 animate-pulse">
+          <div class="h-4 bg-muted rounded w-2/3 mb-3" />
+          <div v-for="j in (i === 1 ? 3 : i === 2 ? 2 : 4)" :key="j" class="bg-muted rounded-lg p-3 space-y-2">
+            <div class="h-3 bg-background rounded w-full" />
+            <div class="h-3 bg-background rounded w-3/4" />
+          </div>
+        </div>
+      </template>
+
       <draggable
-        v-if="store.currentBoard"
+        v-else-if="store.currentBoard"
         :list="store.currentBoard.columns"
         item-key="id"
         handle=".col-drag-handle"
@@ -291,12 +366,27 @@ async function onCardDrop(columnId: string, event: any) {
         >
 
           <!-- Column header -->
-          <div class="col-drag-handle px-3 pt-3 pb-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none">
-            <span class="font-semibold text-sm flex-1">{{ col.title }}</span>
+          <div class="px-3 pt-3 pb-2 flex items-center justify-between">
+            <input
+              v-if="editingColId === col.id"
+              v-model="editingColTitle"
+              class="font-semibold text-sm bg-transparent border-b border-ring outline-none flex-1 min-w-0"
+              autofocus
+              @blur="saveColTitle"
+              @keyup.enter="saveColTitle"
+              @keyup.esc="editingColId = null"
+              @click.stop
+            />
+            <span
+              v-else
+              class="col-drag-handle font-semibold text-sm flex-1 cursor-grab active:cursor-grabbing select-none truncate hover:text-muted-foreground transition-colors"
+              :title="'Нажмите, чтобы переименовать'"
+              @dblclick.stop="startEditCol(col.id, col.title)"
+            >{{ col.title }}</span>
             <Button
               variant="ghost"
               size="icon-sm"
-              class="ml-1 text-muted-foreground hover:text-destructive cursor-pointer"
+              class="ml-1 shrink-0 text-muted-foreground hover:text-destructive cursor-pointer"
               @click.stop="store.deleteColumn(col.id)"
             >✕</Button>
           </div>
@@ -379,8 +469,8 @@ async function onCardDrop(columnId: string, event: any) {
         </template>
       </draggable>
 
-      <!-- Add column -->
-      <div class="flex-shrink-0 w-72">
+      <!-- Add column (only when not loading) -->
+      <div v-if="!store.boardLoading" class="flex-shrink-0 w-72">
         <div v-if="addingCol" class="bg-card border border-border rounded-xl p-3 space-y-2">
           <Input
             v-model="newColTitle"

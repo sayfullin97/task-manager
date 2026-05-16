@@ -87,25 +87,38 @@ function boardColor(id: string) {
 
       <!-- Boards grid -->
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <RouterLink
-          v-for="board in store.boards"
-          :key="board.id"
-          :to="`/boards/${board.id}`"
-          class="group"
-        >
-          <div class="rounded-lg overflow-hidden border hover:shadow-md transition-shadow cursor-pointer">
-            <div :style="{ background: boardColor(board.id) }" class="h-20" />
-            <div class="p-3 bg-card">
-              <p class="font-medium text-sm truncate">{{ board.title }}</p>
-              <p v-if="board.description" class="text-xs text-muted-foreground mt-0.5 truncate">{{ board.description }}</p>
-              <p class="text-xs text-muted-foreground mt-1 capitalize">{{ board.role }}</p>
+        <!-- Skeleton loading -->
+        <template v-if="store.loading">
+          <div v-for="i in 6" :key="i" class="rounded-lg overflow-hidden border animate-pulse">
+            <div class="h-20 bg-muted" />
+            <div class="p-3 bg-card space-y-2">
+              <div class="h-3.5 bg-muted rounded w-3/4" />
+              <div class="h-2.5 bg-muted rounded w-1/2" />
             </div>
           </div>
-        </RouterLink>
+        </template>
 
-        <p v-if="!store.boards.length" class="col-span-full text-center text-muted-foreground py-12">
-          No boards yet. Create your first one!
-        </p>
+        <template v-else>
+          <RouterLink
+            v-for="board in store.boards"
+            :key="board.id"
+            :to="`/boards/${board.id}`"
+            class="group"
+          >
+            <div class="rounded-lg overflow-hidden border hover:shadow-md transition-shadow cursor-pointer">
+              <div :style="{ background: boardColor(board.id) }" class="h-20" />
+              <div class="p-3 bg-card">
+                <p class="font-medium text-sm truncate">{{ board.title }}</p>
+                <p v-if="board.description" class="text-xs text-muted-foreground mt-0.5 truncate">{{ board.description }}</p>
+                <p class="text-xs text-muted-foreground mt-1 capitalize">{{ board.role }}</p>
+              </div>
+            </div>
+          </RouterLink>
+
+          <p v-if="!store.boards.length" class="col-span-full text-center text-muted-foreground py-12">
+            No boards yet. Create your first one!
+          </p>
+        </template>
       </div>
     </main>
   </div>
